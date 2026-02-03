@@ -2,39 +2,96 @@ import streamlit as st
 import numpy as np
 import joblib
 
-st.set_page_config(page_title="AQI Prediction App", layout="centered")
-st.title("Air Quality Index (AQI) Prediction")
+# ------------------ Page Config ------------------
+st.set_page_config(
+    page_title="AQI Prediction App",
+    page_icon="🌫️",
+    layout="wide"
+)
 
-st.write("Predict the Air Quality Index (AQI) based on input parameters.")
-# Load the pretrained model
+# ------------------ Title ------------------
+st.title("🌍 Air Quality Index (AQI) Predictor")
+st.caption("Predict air quality based on environmental parameters")
+
+st.divider()
+
+# ------------------ Load Model ------------------
 model = joblib.load("LR_AQI_Prediction.joblib")
 
-# Input the fields for the features
-pm25 = st.number_input("PM2.5", 0.0, 500.0, 50.0)
-pm10 = st.number_input("PM1.0", 0.0, 500.0, 80.0)
-no2 = st.number_input("NO2", 0.0, 300.0, 40.0)
-so2 = st.number_input("SO2", 0.0, 300.0, 20.0)
-co = st.number_input("CO", 0.0, 10.0, 1.0)
-temperature = st.number_input("Temperature (°C)", -30.0, 50.0, 25.0)
-humidity = st.number_input("Humidity (%)", 0.0, 100.0, 50.0)
+# ------------------ Sidebar Inputs ------------------
+st.sidebar.header("⚙️ Input Parameters")
 
+pm25 = st.sidebar.slider("PM2.5", 0.0, 500.0, 50.0)
+pm10 = st.sidebar.slider("PM10", 0.0, 500.0, 80.0)
+no2 = st.sidebar.slider("NO₂", 0.0, 300.0, 40.0)
+so2 = st.sidebar.slider("SO₂", 0.0, 300.0, 20.0)
+co = st.sidebar.slider("CO", 0.0, 10.0, 1.0)
+temperature = st.sidebar.slider("🌡️ Temperature (°C)", -30.0, 50.0, 25.0)
+humidity = st.sidebar.slider("💧 Humidity (%)", 0.0, 100.0, 50.0)
+
+# ------------------ Input Array ------------------
 input_data = np.array([[pm25, pm10, no2, so2, co, temperature, humidity]])
 
+# ------------------ AQI Category Logic ------------------
 def aqi_category(aqi):
     if aqi <= 50:
-        return "Good"
-    if aqi <= 100:
-        return "Moderate"
-    if aqi <= 150:
-        return "Unhealthy for Sensitive Groups"
+        return "🟢 Good"
+    elif aqi <= 100:
+        return "🟡 Moderate"
+    elif aqi <= 150:
+        return "🟠 Unhealthy (Sensitive)"
     elif aqi <= 200:
-        return "Unhealthy"
+        return "🔴 Unhealthy"
     elif aqi <= 300:
-        return "Very Unhealthy"
+        return "🟣 Very Unhealthy"
     else:
-        return "Hazardous"
+        return "⚫ Hazardous"
 
-if st.button("Predict AQI"):
-    prediction = model.predict(input_data)
-    st.success(f"Predicted AQI Value : {round(prediction[0], 2)}")
-    st.info(f"AQI Category : {aqi_category(prediction[0])}")
+# ------------------ Layout Columns ------------------
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("PM2.5", pm25)
+
+with col2:
+    st.metric("PM10", pm10)
+
+with col3:
+    st.metric("NO₂", no2)
+
+st.divider()
+
+# ------------------ Prediction ------------------
+if st.button("🔮 Predict AQI", use_container_width=True):
+
+    with st.spinner("Predicting AQI..."):
+        prediction = model.predict(input_data)[0]
+
+    st.subheader("📊 Prediction Result")
+
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.metric(
+            label="AQI Value",
+            value=f"{prediction:.2f}"
+        )
+
+    with colB:
+        st.metric(
+            label="AQI Category",
+            value=aqi_category(prediction)
+        )
+
+    st.success("Prediction completed successfully!")
+
+# ------------------ Info Section ------------------
+with st.expander("ℹ️ What does AQI mean?"):
+    st.markdown("""
+    - 🟢 **0–50:** Good  
+    - 🟡 **51–100:** Moderate  
+    - 🟠 **101–150:** Unhealthy for Sensitive Groups  
+    - 🔴 **151–200:** Unhealthy  
+    - 🟣 **201–300:** Very Unhealthy  
+    - ⚫ **301+:** Hazardous  
+    """)
